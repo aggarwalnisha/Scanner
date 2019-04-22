@@ -2,6 +2,7 @@ package com.nisha.scanner;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.provider.ContactsContract;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -29,6 +31,7 @@ import org.opencv.utils.Converters;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOError;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,9 +52,10 @@ public class CapturedImageActivity extends AppCompatActivity {
     private final int threshold_level = 2;
 
     private Mat rgba, image, blurred, edges;
-    Mat startM, endM, inputMat, outputMat;
+    Mat startM, endM, inputMat, outputMat, finalMat;
     MatOfPoint2f approx;
     int resultWidth, resultHeight;
+    Bitmap thresh_bitmap;
 
     void extractChannel(Mat source, Mat out, int channelNum) {
         List<Mat> sourceChannels=new ArrayList<Mat>();
@@ -76,18 +80,26 @@ public class CapturedImageActivity extends AppCompatActivity {
         final ImageView capturedImage = (ImageView)findViewById(R.id.capturedImage);
         ImageView okBtn = (ImageView)findViewById(R.id.OkBtn);
 
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+
+        File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
+        File myImagePath = new File(directory, "myImage.jpg");
+
+        try {
+
+            bitmap = BitmapFactory.decodeStream(new FileInputStream(myImagePath));
+            capturedImage.setImageBitmap(bitmap);
+            Log.i(TAG, "Image set");
+        }catch(java.io.FileNotFoundException e){
+            Log.i(TAG, "File not found");
+        }
+
         okBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 numClicks += 1;
                 // Start Image Processing
                 Log.i(TAG, "Starting Image processing");
-
-
-
-
-
-
 
                 if (numClicks == 1) {
                     //rgba Image
@@ -344,10 +356,10 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                 else if(numClicks == 4){
                     try{
-                    Mat finalMat = outputMat;
+                    finalMat = outputMat;
                     Imgproc.cvtColor(outputMat, finalMat, Imgproc.COLOR_BGR2GRAY);
-                    Imgproc.adaptiveThreshold(finalMat, finalMat, 240, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 15, 15);
-                    Bitmap thresh_bitmap = null;
+                    Imgproc.adaptiveThreshold(finalMat, finalMat, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 15, 25);
+                    thresh_bitmap = null;
 
 
                     thresh_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
@@ -359,6 +371,25 @@ public class CapturedImageActivity extends AppCompatActivity {
                     }
                 }
 
+                else if(numClicks == 5){
+                    Log.i(TAG, "Opening directory");
+                    ContextWrapper cw = new ContextWrapper(getApplicationContext());
+                    File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
+                    File mypath = new File(directory, "myImage.jpg");
+
+                    FileOutputStream fos = null;
+                    try{
+                        fos = new FileOutputStream(mypath);
+                        thresh_bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        fos.close();
+                    }catch(Exception e){
+                        e.printStackTrace();
+                    }
+                    Toast.makeText(getApplicationContext(), "Capturing OCR", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(getApplicationContext(), OCRActivity.class);
+                    startActivity(intent);
+                }
+
 
 
             }
@@ -368,18 +399,6 @@ public class CapturedImageActivity extends AppCompatActivity {
 
         });
 
-        ContextWrapper cw = new ContextWrapper(getApplicationContext());
 
-        File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
-        File myImagePath = new File(directory, "myImage.jpg");
-
-        try {
-
-            bitmap = BitmapFactory.decodeStream(new FileInputStream(myImagePath));
-            capturedImage.setImageBitmap(bitmap);
-            Log.i(TAG, "Image set");
-        }catch(java.io.FileNotFoundException e){
-            Log.i(TAG, "File not found");
-        }
     }
 }
