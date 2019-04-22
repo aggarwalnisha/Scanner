@@ -9,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
@@ -55,15 +56,35 @@ public class OCRActivity extends AppCompatActivity {
     }
 
     private void checkFile(File dir) {
-        if (!dir.exists()&& dir.mkdirs()){
-            copyFiles();
-        }
-        if(dir.exists()) {
-            String datafilepath = datapath+ "/tessdata/eng.traineddata";
-            File datafile = new File(datafilepath);
-            if (!datafile.exists()) {
+        try {
+            if (!dir.exists() && dir.mkdirs()) {
                 copyFiles();
             }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        try {
+            if (dir.exists()) {
+                String datafilepath = datapath + "/tessdata/eng.traineddata";
+                File datafile = new File(datafilepath);
+                if (!datafile.exists()) {
+                    copyFiles();
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void runOCR(View view){
+        try {
+            String OCRresult = null;
+            mTess.setImage(image);
+            OCRresult = mTess.getUTF8Text();
+            TextView tv_OCR_Result = (TextView) findViewById(R.id.tv_OCR_Result);
+            tv_OCR_Result.setText(OCRresult);
+        }catch(Exception e){
+            e.printStackTrace();
         }
     }
 
@@ -74,6 +95,8 @@ public class OCRActivity extends AppCompatActivity {
 
         TextView textView = (TextView) findViewById(R.id.tv_OCR_Result);
         textView.setMovementMethod(new ScrollingMovementMethod());
+
+        Log.i(TAG, "Loading Bitmap");
 
         Bitmap image;
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
@@ -92,12 +115,8 @@ public class OCRActivity extends AppCompatActivity {
             checkFile(new File(datapath + "tessdata/"));
             mTess.init(datapath, language);
 
+            runOCR(textView);
 
-            String OCRresult = null;
-            mTess.setImage(image);
-            OCRresult = mTess.getUTF8Text();
-            TextView tv_OCR_Result = (TextView) findViewById(R.id.tv_OCR_Result);
-            tv_OCR_Result.setText(OCRresult);
 
         }catch(Exception e){
            e.printStackTrace();

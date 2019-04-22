@@ -34,6 +34,8 @@ public class CamView extends JavaCameraView implements PictureCallback {
     private static final String TAG = "Sample::CamView";
     private String mPictureFileName;
 
+    private static boolean isFlashLightON = false;
+
     private Context context;
 
     public CamView(Context context, AttributeSet attrs) {
@@ -49,46 +51,6 @@ public class CamView extends JavaCameraView implements PictureCallback {
         setPictureSize();
     }
 
-    protected boolean setPreviewSize() {
-        try {
-            Camera.Parameters params = mCamera.getParameters();
-
-            params.setPreviewFormat(ImageFormat.NV21);
-
-            Log.d(TAG, "getSupportedPreviewSizes()");
-            List<Camera.Size> sizes = params.getSupportedPreviewSizes();
-            if (sizes == null) {
-                Log.w(TAG, "getSupportedPreviewSizes() = null, cannot set a custom size");
-                return false;
-            }
-
-            int maxSize = 0;
-            for (android.hardware.Camera.Size size : sizes) {
-//                if (size.height * mFrameWidth != size.width * mFrameHeight) {
-//                    continue; // the picture size doesn't match
-//                }
-                if (maxSize > size.width * size.height) {
-                    continue; // don't need this size
-                }
-                params.setPreviewSize(size.width, size.height);
-                maxSize = size.width * size.height;
-            }
-            if (maxSize == 0) {
-                Log.w(TAG, "getSupportedPreviewSizes() has no matches for " + mFrameWidth + 'x' + mFrameHeight);
-                return false;
-            }
-
-               Log.d(TAG, "try Preview size " + params.getPreviewSize().width + 'x' + params.getPreviewSize().height);
-
-            mCamera.setParameters(params);
-
-           // mCamera.setPreviewDisplay(mSurfaceHolder);
-        } catch (Exception e) {
-            Log.e(TAG, "setPreviewSize for " + mFrameWidth + 'x' + mFrameHeight, e);
-            return false;
-        }
-        return true;
-    }
 
     protected boolean setPictureSize() {
         try {
@@ -116,7 +78,7 @@ public class CamView extends JavaCameraView implements PictureCallback {
                 return false;
             }
             Log.d(TAG, "try Picture size " + params.getPictureSize().width + 'x' + params.getPictureSize().height);
-       //     Log.d(TAG, "try Preview size " + params.getPreviewSize().width + 'x' + params.getPreviewSize().height);
+
             mCamera.setParameters(params);
         } catch (Exception e) {
             Log.e(TAG, "setPictureSize for " + mFrameWidth + 'x' + mFrameHeight, e);
@@ -167,6 +129,8 @@ public class CamView extends JavaCameraView implements PictureCallback {
 
         Log.i(TAG, "Calling mCamera's takePicture");
 
+        Toast.makeText(getContext().getApplicationContext(), "Saving photo", Toast.LENGTH_SHORT).show();
+
         mCamera.takePicture(null, null, this);
     }
 
@@ -198,6 +162,7 @@ public class CamView extends JavaCameraView implements PictureCallback {
         }
         Toast.makeText(getContext().getApplicationContext(), "Save in OnPictureCallback", Toast.LENGTH_SHORT).show();
 
+        //mCamera.release();
         Intent intent = new Intent(getContext().getApplicationContext(), CapturedImageActivity.class);
         getContext().startActivity(intent);
 
@@ -212,6 +177,33 @@ public class CamView extends JavaCameraView implements PictureCallback {
             return bmOut;
         }
         return bm;
+    }
+
+    public void setupCameraFlashLight() {
+        Camera  camera = mCamera;
+        if (camera != null) {
+            Log.i(TAG, "Camera is not null");
+            Camera.Parameters params = camera.getParameters();
+
+            if (params != null) {
+                Log.i(TAG, "Parameters is not null");
+                if (isFlashLightON) {
+                    isFlashLightON = false;
+                    params.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+                    camera.setParameters(params);
+                    camera.startPreview();
+                } else {
+                    isFlashLightON = true;
+                    params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+                    camera.setParameters(params);
+                    camera.startPreview();
+
+                }
+            }
+        }else{
+            Log.i(TAG, "Camera is null");
+        }
+
     }
 }
 

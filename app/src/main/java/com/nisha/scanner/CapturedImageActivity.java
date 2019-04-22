@@ -5,12 +5,12 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.opencv.android.Utils;
@@ -22,7 +22,6 @@ import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -42,20 +41,15 @@ import java.util.List;
 public class CapturedImageActivity extends AppCompatActivity {
 
     private static final String TAG = "CapturedImageActivity";
-    Bitmap bitmap;
+
     private int numClicks = 0;
     private Scalar CONTOUR_COLOR;
 
-    private double maxArea = 0;
-    private int maxAreaIdx = 0;
-
-    private final int threshold_level = 2;
-
-    private Mat rgba, image, blurred, edges;
-    Mat startM, endM, inputMat, outputMat, finalMat;
+    //image will contain unchanged image
+    private Mat rgba, image, blurred, edges, startM, endM, inputMat, outputMat, finalMat;
+    Bitmap bitmap, thresh_bitmap, edged_bitmap, warp_bitmap,contour_bitmap;
     MatOfPoint2f approx;
     int resultWidth, resultHeight;
-    Bitmap thresh_bitmap;
 
     void extractChannel(Mat source, Mat out, int channelNum) {
         List<Mat> sourceChannels=new ArrayList<Mat>();
@@ -77,24 +71,32 @@ public class CapturedImageActivity extends AppCompatActivity {
 
         CONTOUR_COLOR = new Scalar(255,0,0,255);
 
-        final ImageView capturedImage = (ImageView)findViewById(R.id.capturedImage);
-        ImageView okBtn = (ImageView)findViewById(R.id.OkBtn);
 
+        final ImageView capturedImage = (ImageView)findViewById(R.id.capturedImage);
+        ImageView nextBtn = (ImageView)findViewById(R.id.nextBtn);
+        ImageView backBtn = (ImageView)findViewById(R.id.backBtn);
+        final TextView textView1 = (TextView)findViewById(R.id.textView1);
+        textView1.setText("Captured Image");
+
+        //Getting image from internal memory to ImageView
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
 
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
         File myImagePath = new File(directory, "myImage.jpg");
 
         try {
-
             bitmap = BitmapFactory.decodeStream(new FileInputStream(myImagePath));
             capturedImage.setImageBitmap(bitmap);
+
+            capturedImage.setAdjustViewBounds(true);
+            capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
             Log.i(TAG, "Image set");
         }catch(java.io.FileNotFoundException e){
             Log.i(TAG, "File not found");
         }
 
-        okBtn.setOnClickListener(new View.OnClickListener() {
+        nextBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 numClicks += 1;
@@ -102,6 +104,8 @@ public class CapturedImageActivity extends AppCompatActivity {
                 Log.i(TAG, "Starting Image processing");
 
                 if (numClicks == 1) {
+
+                    textView1.setText("Detected edges");
                     //rgba Image
                     rgba = new Mat();
                     Utils.bitmapToMat(bitmap, rgba);
@@ -109,13 +113,11 @@ public class CapturedImageActivity extends AppCompatActivity {
                     image = new Mat();
                     Utils.bitmapToMat(bitmap, image);
 
-                    //Edge Detection
+                    //edges will contain Canny Edged image
                     edges = rgba;
                     Imgproc.cvtColor(rgba, edges, Imgproc.COLOR_BGR2GRAY);
 
-
                    // Imgproc.Canny(edges, edges, 50, 50);
-
 
                     MatOfDouble mean = new MatOfDouble();
                     MatOfDouble std = new MatOfDouble();
@@ -138,15 +140,19 @@ public class CapturedImageActivity extends AppCompatActivity {
 //
 //                    Imgproc.Canny(edges, edges, lower_thresh_val, high_thresh_val);
 
-                    Imgproc.GaussianBlur(edges, edges, new Size(9, 9), 9);
+                    Imgproc.GaussianBlur(edges, edges, new Size(5, 5), 5);
 
-                    Bitmap edged_bitmap = null;
+                    edged_bitmap = null;
 
                     try {
                         edged_bitmap = Bitmap.createBitmap(edges.cols(), edges.rows(), Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(edges, edged_bitmap);
 
                         capturedImage.setImageBitmap(edged_bitmap);
+
+                        capturedImage.setAdjustViewBounds(true);
+                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -155,6 +161,9 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                 else if (numClicks == 2) {
                     //Contour Detection
+
+                    textView1.setText("Detected contour");
+
                     Log.i(TAG, "Contour Detection");
 
                     List<MatOfPoint> contours = new ArrayList<>();
@@ -194,7 +203,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                             double epsilon = 0.02*Imgproc.arcLength(new MatOfPoint2f(contour.toArray()),true);
                             approx = new MatOfPoint2f();
                             Imgproc.approxPolyDP(new MatOfPoint2f(contour.toArray()),approx,epsilon,true);
-                            if(approx.toArray().length == 4){
+                            if(approx.total() == 4){
                                 list.add(contour);
                                 break;
                             }
@@ -202,15 +211,18 @@ public class CapturedImageActivity extends AppCompatActivity {
 
 
                         Log.i(TAG, list.toString());
-                        Imgproc.drawContours(rgba, list, -1, CONTOUR_COLOR, 20);
+                        Imgproc.drawContours(rgba, list, -1, CONTOUR_COLOR, 4);
 
-                        Bitmap contour_bitmap = null;
+                        contour_bitmap = null;
 
                         try {
                             contour_bitmap = Bitmap.createBitmap(rgba.cols(), rgba.rows(), Bitmap.Config.ARGB_8888);
                             Utils.matToBitmap(rgba, contour_bitmap);
 
                             capturedImage.setImageBitmap(contour_bitmap);
+
+                            capturedImage.setAdjustViewBounds(true);
+                            capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -221,7 +233,7 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                 else if(numClicks == 3){
 
-
+                    textView1.setText("Perspective Transformation");
                     try {
                         double[] temp_double;                       // find four points
                         Point top_left, top_right, bottom_left, bottom_right;
@@ -310,6 +322,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                         Log.i(TAG, bottom_right.toString());
                         Log.i(TAG, bottom_left.toString());
 
+
                         startM = Converters.vector_Point2f_to_Mat(source);
 
                         resultWidth = Math.abs((int) (top_right.x - top_left.x));
@@ -342,30 +355,39 @@ public class CapturedImageActivity extends AppCompatActivity {
                         Imgproc.warpPerspective(inputMat, outputMat, perspectiveTransform, new Size(resultWidth, resultHeight));
 
 
-                        Bitmap warp_bitmap = null;
+                        warp_bitmap = null;
 
 
                         warp_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(outputMat, warp_bitmap);
 
                         capturedImage.setImageBitmap(warp_bitmap);
+
+                        capturedImage.setAdjustViewBounds(true);
+                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
 
                 else if(numClicks == 4){
+                    textView1.setText("Adaptive Threshold");
                     try{
-                    finalMat = outputMat;
-                    Imgproc.cvtColor(outputMat, finalMat, Imgproc.COLOR_BGR2GRAY);
-                    Imgproc.adaptiveThreshold(finalMat, finalMat, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 15, 25);
-                    thresh_bitmap = null;
+                        finalMat = outputMat;
+                        Imgproc.cvtColor(outputMat, finalMat, Imgproc.COLOR_BGR2GRAY);
+                        Imgproc.adaptiveThreshold(finalMat, finalMat, 230, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 30, 3);
+                        thresh_bitmap = null;
 
 
-                    thresh_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(finalMat, thresh_bitmap);
+                        thresh_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
+                        Utils.matToBitmap(finalMat, thresh_bitmap);
 
-                    capturedImage.setImageBitmap(thresh_bitmap);
+                        capturedImage.setImageBitmap(thresh_bitmap);
+
+                        capturedImage.setAdjustViewBounds(true);
+                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -385,18 +407,60 @@ public class CapturedImageActivity extends AppCompatActivity {
                     }catch(Exception e){
                         e.printStackTrace();
                     }
-                    Toast.makeText(getApplicationContext(), "Capturing OCR", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "OCR Activity", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(getApplicationContext(), OCRActivity.class);
                     startActivity(intent);
                 }
-
-
 
             }
 
 
 
 
+        });
+
+        backBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                numClicks -= 1;
+                if(numClicks == 0){
+                    textView1.setText("Captured Image");
+                    capturedImage.setImageBitmap(bitmap);
+
+                    capturedImage.setAdjustViewBounds(true);
+                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+                }else if(numClicks == 1){
+                    textView1.setText("Detected edges");
+                    capturedImage.setImageBitmap(edged_bitmap);
+
+                    capturedImage.setAdjustViewBounds(true);
+                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+                } else if(numClicks == 2){
+                    textView1.setText("Detected contour");
+                    capturedImage.setImageBitmap(contour_bitmap);
+
+                    capturedImage.setAdjustViewBounds(true);
+                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+                } else if(numClicks == 3){
+                    textView1.setText("Perspective Transformation");
+                    capturedImage.setImageBitmap(warp_bitmap);
+
+                    capturedImage.setAdjustViewBounds(true);
+                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+                } else if(numClicks == 4){
+                    textView1.setText("Adaptive Threshold");
+                    capturedImage.setImageBitmap(thresh_bitmap);
+
+                    capturedImage.setAdjustViewBounds(true);
+                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+                }
+
+            }
         });
 
 

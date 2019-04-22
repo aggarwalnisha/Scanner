@@ -5,56 +5,50 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
+
     <com.nisha.scanner.CamView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
         android:id="@+id/main_activity_java_surface_view"
-        android:screenOrientation="sensorLandscape"
         />
 
+    <!--<ImageView-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent"-->
+        <!--android:visibility="gone"-->
+        <!--android:id = "@+id/loaded_image"/>-->
 
+    <ImageView
+        android:id="@+id/flashBtn"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/flash"
+        android:adjustViewBounds="true"
+        android:layout_gravity="left|top"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"/>
 
-    <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_gravity="bottom"
-        android:layout_marginBottom="20dp">
+    <ImageView
+        android:id="@+id/galleryBtn"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/gallery"
+        android:adjustViewBounds="true"
+        android:layout_gravity="right|top"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"/>
 
-        <ImageView
-            android:id="@+id/cameraEffects"
-            android:layout_width="wrap_content"
-            android:layout_height="64dp"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/cameraeffect"
-            android:adjustViewBounds="true"
-            android:layout_gravity="left"
-            android:layout_marginLeft="30dp"
-            android:layout_marginRight="20dp"/>
-
-        <ImageView
-            android:id="@+id/captureBtn"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/camcapture"
-            android:adjustViewBounds="true"
-            android:layout_gravity="center"
-            android:layout_marginLeft="40dp"
-            android:layout_marginRight="40dp"/>
-
-        <ImageView
-            android:id="@+id/resolution"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/resolution"
-            android:layout_gravity="right"
-            android:adjustViewBounds="true"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="30dp"/>
-
-    </LinearLayout>
+    <ImageView
+        android:id="@+id/captureBtn"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/camcapture"
+        android:adjustViewBounds="true"
+        android:layout_gravity="center|bottom"
+        android:layout_marginBottom="8dp"/>
 
 </FrameLayout>

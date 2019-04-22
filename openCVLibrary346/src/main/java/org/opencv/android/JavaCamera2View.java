@@ -315,6 +315,8 @@ public class JavaCamera2View extends CameraBridgeViewBase {
             else
                 mScale = 0;
 
+            mScale = Math.max(((float)height)/mFrameHeight, ((float)width)/mFrameWidth);
+            
             AllocateCache();
 
             if (needReconfig) {
