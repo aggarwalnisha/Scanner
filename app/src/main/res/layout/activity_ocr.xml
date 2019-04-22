@@ -10,15 +10,44 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.nisha.scanner.OCRActivity">
 
-    <TextView
+    <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="OCR Text will appear here"
-        android:id="@+id/tv_OCR_Result"
-        android:textSize="18dp"
-        android:layout_centerVertical="true"
+        android:text="OCR on whole page"
+        android:id="@+id/ocrBtn"
+        android:layout_above="@+id/speechBtn"
+        android:layout_alignEnd="@+id/speechBtn"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/speechBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Convert to speech"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="3dp"
         android:layout_centerHorizontal="true"
-        android:background="#dedede"
-        android:scrollbars="vertical"
-        android:textColor="#a3a3a3" />
+        />
+
+    <ScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="OCR Text will appear here"
+            android:id="@+id/tv_OCR_Result"
+            android:textSize="18dp"
+            android:layout_marginTop="10dp"
+            android:layout_centerHorizontal="true"
+            android:background="#dedede"
+            android:scrollbars="vertical"
+            android:textColor="#a3a3a3"
+            android:layout_marginBottom="100dp"/>
+    </ScrollView>
+
+    <!--android:layout_centerVertical="true"-->
+
+
+
 </RelativeLayout>

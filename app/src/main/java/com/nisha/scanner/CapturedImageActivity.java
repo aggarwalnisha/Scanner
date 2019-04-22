@@ -376,9 +376,8 @@ public class CapturedImageActivity extends AppCompatActivity {
                     try{
                         finalMat = outputMat;
                         Imgproc.cvtColor(outputMat, finalMat, Imgproc.COLOR_BGR2GRAY);
-                        Imgproc.adaptiveThreshold(finalMat, finalMat, 230, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 30, 3);
+                        Imgproc.adaptiveThreshold(finalMat, finalMat, 230, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 19, 5);
                         thresh_bitmap = null;
-
 
                         thresh_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(finalMat, thresh_bitmap);
@@ -408,6 +407,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                     Toast.makeText(getApplicationContext(), "OCR Activity", Toast.LENGTH_SHORT).show();
+                    Log.i(TAG, "Sent to OCR activity");
                     Intent intent = new Intent(getApplicationContext(), OCRActivity.class);
                     startActivity(intent);
                 }

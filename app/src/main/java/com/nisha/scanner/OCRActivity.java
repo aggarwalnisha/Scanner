@@ -10,7 +10,10 @@ import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
@@ -76,29 +79,20 @@ public class OCRActivity extends AppCompatActivity {
         }
     }
 
-    public void runOCR(View view){
-        try {
-            String OCRresult = null;
-            mTess.setImage(image);
-            OCRresult = mTess.getUTF8Text();
-            TextView tv_OCR_Result = (TextView) findViewById(R.id.tv_OCR_Result);
-            tv_OCR_Result.setText(OCRresult);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }
+//    public void runOCR(View view){
+//
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.i(TAG, "OnCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ocr);
 
         TextView textView = (TextView) findViewById(R.id.tv_OCR_Result);
-        textView.setMovementMethod(new ScrollingMovementMethod());
 
         Log.i(TAG, "Loading Bitmap");
 
-        Bitmap image;
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
 
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
@@ -109,18 +103,40 @@ public class OCRActivity extends AppCompatActivity {
 
             image = BitmapFactory.decodeStream(new FileInputStream(myImagePath));
 
+            Log.i(TAG, "Into tesseract");
             String language = "eng";
             datapath = getFilesDir()+ "/tesseract/";
             mTess = new TessBaseAPI();
             checkFile(new File(datapath + "tessdata/"));
             mTess.init(datapath, language);
 
-            runOCR(textView);
-
+            Log.i(TAG, "Initialization Done");
 
         }catch(Exception e){
            e.printStackTrace();
         }
+
+        Button ocrBtn = (Button)findViewById(R.id.ocrBtn);
+        ocrBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.i(TAG, "OCR demanded");
+                view.setVisibility(View.INVISIBLE);
+                Log.i(TAG, "View invisible");
+                try {
+
+
+                    String OCRresult = null;
+                    mTess.setImage(image);
+                    OCRresult = mTess.getUTF8Text();
+                    TextView tv_OCR_Result = (TextView) findViewById(R.id.tv_OCR_Result);
+                    tv_OCR_Result.setText(OCRresult);
+                    Toast.makeText(getApplicationContext(), "OCR done!", Toast.LENGTH_SHORT).show();
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
 
 
 
