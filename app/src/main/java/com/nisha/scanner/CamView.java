@@ -4,39 +4,90 @@ package com.nisha.scanner;
  * Created by PC on 4/19/2019.
  */
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.util.List;
 
 import org.opencv.android.JavaCameraView;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.Size;
 import android.net.Uri;
+import android.os.Build;
+import android.os.SystemClock;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.Toast;
 
 public class CamView extends JavaCameraView implements PictureCallback {
 
     private static final String TAG = "Sample::CamView";
     private String mPictureFileName;
 
-    public static int minWidthQuality = 400;
     private Context context;
 
     public CamView(Context context, AttributeSet attrs) {
         super(context, attrs);
         this.context = context;
+
     }
 
     @Override
     protected void AllocateCache() {
         super.AllocateCache();
+
         setPictureSize();
+    }
+
+    protected boolean setPreviewSize() {
+        try {
+            Camera.Parameters params = mCamera.getParameters();
+
+            params.setPreviewFormat(ImageFormat.NV21);
+
+            Log.d(TAG, "getSupportedPreviewSizes()");
+            List<Camera.Size> sizes = params.getSupportedPreviewSizes();
+            if (sizes == null) {
+                Log.w(TAG, "getSupportedPreviewSizes() = null, cannot set a custom size");
+                return false;
+            }
+
+            int maxSize = 0;
+            for (android.hardware.Camera.Size size : sizes) {
+//                if (size.height * mFrameWidth != size.width * mFrameHeight) {
+//                    continue; // the picture size doesn't match
+//                }
+                if (maxSize > size.width * size.height) {
+                    continue; // don't need this size
+                }
+                params.setPreviewSize(size.width, size.height);
+                maxSize = size.width * size.height;
+            }
+            if (maxSize == 0) {
+                Log.w(TAG, "getSupportedPreviewSizes() has no matches for " + mFrameWidth + 'x' + mFrameHeight);
+                return false;
+            }
+
+               Log.d(TAG, "try Preview size " + params.getPreviewSize().width + 'x' + params.getPreviewSize().height);
+
+            mCamera.setParameters(params);
+
+           // mCamera.setPreviewDisplay(mSurfaceHolder);
+        } catch (Exception e) {
+            Log.e(TAG, "setPreviewSize for " + mFrameWidth + 'x' + mFrameHeight, e);
+            return false;
+        }
+        return true;
     }
 
     protected boolean setPictureSize() {
@@ -50,7 +101,6 @@ public class CamView extends JavaCameraView implements PictureCallback {
             }
 
             int maxSize = 0;
-            // choose the largest size that matches the preview AR
             for (android.hardware.Camera.Size size : sizes) {
 //                if (size.height * mFrameWidth != size.width * mFrameHeight) {
 //                    continue; // the picture size doesn't match
@@ -66,6 +116,7 @@ public class CamView extends JavaCameraView implements PictureCallback {
                 return false;
             }
             Log.d(TAG, "try Picture size " + params.getPictureSize().width + 'x' + params.getPictureSize().height);
+       //     Log.d(TAG, "try Preview size " + params.getPreviewSize().width + 'x' + params.getPreviewSize().height);
             mCamera.setParameters(params);
         } catch (Exception e) {
             Log.e(TAG, "setPictureSize for " + mFrameWidth + 'x' + mFrameHeight, e);
@@ -73,11 +124,6 @@ public class CamView extends JavaCameraView implements PictureCallback {
         }
         return true;
     }
-
-
-
-
-
 
     public List<String> getEffectList() {
         return mCamera.getParameters().getSupportedColorEffects();
@@ -112,41 +158,49 @@ public class CamView extends JavaCameraView implements PictureCallback {
         return mCamera.getParameters().getPreviewSize();
     }
 
-    public void takePicture(final String fileName) {
+    public void takePicture() {
         Log.i(TAG, "Taking picture");
-        this.mPictureFileName = fileName;
-        // Postview and jpeg are sent in the same buffers if the queue is not empty when performing a capture.
-        // Clear up buffers to avoid mCamera.takePicture to be stuck because of a memory issue
+
+        mPictureFileName = "myImage.jpg";
+
         mCamera.setPreviewCallback(null);
 
-        // PictureCallback is implemented by the current class
+        Log.i(TAG, "Calling mCamera's takePicture");
+
         mCamera.takePicture(null, null, this);
     }
 
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
         Log.i(TAG, "Saving a bitmap to file");
-        // The camera preview was automatically stopped. Start it again.
+
         mCamera.startPreview();
         mCamera.setPreviewCallback(this);
 
         Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-        Uri uri = Uri.parse(mPictureFileName);
 
-        Log.d(TAG, "selectedImage: " + uri);
+        Log.d(TAG, "selectedImage: " + mPictureFileName);
+
         Bitmap bm = null;
         bm = rotate(bitmap, 90);
 
-        // Write the image in a file (in jpeg format)
-        try {
-            FileOutputStream fos = new FileOutputStream(mPictureFileName);
+        ContextWrapper cw = new ContextWrapper(getContext().getApplicationContext());
+        File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
+        File mypath = new File(directory, mPictureFileName);
 
-            fos.write(data);
+        FileOutputStream fos = null;
+        try{
+            fos = new FileOutputStream(mypath);
+            bm.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();
-
-        } catch (java.io.IOException e) {
-            Log.e("PictureDemo", "Exception in photoCallback", e);
+        }catch(Exception e){
+            e.printStackTrace();
         }
+        Toast.makeText(getContext().getApplicationContext(), "Save in OnPictureCallback", Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(getContext().getApplicationContext(), CapturedImageActivity.class);
+        getContext().startActivity(intent);
+
 
     }
 
@@ -160,3 +214,5 @@ public class CamView extends JavaCameraView implements PictureCallback {
         return bm;
     }
 }
+
+
