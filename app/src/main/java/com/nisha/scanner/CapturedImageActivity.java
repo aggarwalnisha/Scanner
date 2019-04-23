@@ -223,26 +223,24 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                    // Imgproc.Canny(edges, edges, 50, 50);
 
-                    MatOfDouble mean = new MatOfDouble();
-                    MatOfDouble std = new MatOfDouble();
-                    Core.meanStdDev(edges, mean, std);
-                    double[] means = mean.get(0, 0);
-                    double[] stds = std.get(0, 0);
+//                    MatOfDouble mean = new MatOfDouble();
+//                    MatOfDouble std = new MatOfDouble();
+//                    Core.meanStdDev(edges, mean, std);
+//                    double[] means = mean.get(0, 0);
+//                    double[] stds = std.get(0, 0);
+//
+//                    Imgproc.Canny(edges, edges, means[0]-stds[0], means[0]-stds[0]);
+//
 
-                    Imgproc.Canny(edges, edges, means[0]-stds[0], means[0]-stds[0]);
+                    Mat im = new Mat(rgba.size(), CvType.CV_8UC1);
+                    double otsu_thresh_val = Imgproc.threshold(
+                            edges,im , 0, 255, Imgproc.THRESH_BINARY | Imgproc.THRESH_OTSU
+                    );
 
-//                    Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_CROSS, new Size(3,3));
-//                    Imgproc.dilate(edges, edges, kernel);
-//
-//                    Mat im = new Mat(rgba.size(), CvType.CV_8UC1);
-//                    double otsu_thresh_val = Imgproc.threshold(
-//                            edges,im , 0, 255, Imgproc.THRESH_BINARY | Imgproc.THRESH_OTSU
-//                    );
-//
-//                    double high_thresh_val  = otsu_thresh_val,
-//                            lower_thresh_val = otsu_thresh_val * 0.5;
-//
-//                    Imgproc.Canny(edges, edges, lower_thresh_val, high_thresh_val);
+                    double high_thresh_val  = otsu_thresh_val,
+                            lower_thresh_val = otsu_thresh_val * 0.5;
+
+                    Imgproc.Canny(edges, edges, lower_thresh_val, high_thresh_val);
 
                     Imgproc.GaussianBlur(edges, edges, new Size(5, 5), 5);
 
@@ -570,7 +568,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                     Log.i(TAG, "Morphological Operations");
                     try{
                         morphMat = finalMat;
-                        Mat kernel = new Mat(new Size(1, 1), CvType.CV_8UC1, new Scalar(255));
+                        Mat kernel = new Mat(new Size(2, 2), CvType.CV_8UC1, new Scalar(255));
                         Imgproc.morphologyEx(finalMat, morphMat, Imgproc.MORPH_OPEN, kernel);
                         Imgproc.morphologyEx(morphMat, morphMat, Imgproc.MORPH_CLOSE, kernel);
 
@@ -609,8 +607,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                                 height, true);
 
                         newBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                        */
-                        fos.close();
+                        */fos.close();
                     }catch(Exception e){
                         e.printStackTrace();
                     }
