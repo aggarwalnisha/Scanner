@@ -298,12 +298,13 @@ public class CapturedImageActivity extends AppCompatActivity {
                         while (iterator.hasNext()){
 
                             MatOfPoint contour = iterator.next();
-                            Log.i(TAG, String.valueOf(Imgproc.contourArea(contour)));
-                            double epsilon = 0.02*Imgproc.arcLength(new MatOfPoint2f(contour.toArray()),true);
+
+                            double epsilon = 0.05*Imgproc.arcLength(new MatOfPoint2f(contour.toArray()),true);
                             approx = new MatOfPoint2f();
-                            Imgproc.approxPolyDP(new MatOfPoint2f(contour.toArray()),approx,epsilon,true);
+                            Imgproc.approxPolyDP(new MatOfPoint2f(contour.toArray()),approx,epsilon, true);
+                            Log.i(TAG, String.valueOf(Imgproc.contourArea(contour)) +", "+String.valueOf(approx.total()));
                             if(approx.total() == 4){
-                                list.add(contour);
+                                list.add(new MatOfPoint(approx.toArray()));
                                 break;
                             }
                         }
@@ -568,9 +569,12 @@ public class CapturedImageActivity extends AppCompatActivity {
                     Log.i(TAG, "Morphological Operations");
                     try{
                         morphMat = finalMat;
+
+
                         Mat kernel = new Mat(new Size(2, 2), CvType.CV_8UC1, new Scalar(255));
                         Imgproc.morphologyEx(finalMat, morphMat, Imgproc.MORPH_OPEN, kernel);
                         Imgproc.morphologyEx(morphMat, morphMat, Imgproc.MORPH_CLOSE, kernel);
+
 
                         morph_bitmap = null;
 
@@ -578,6 +582,8 @@ public class CapturedImageActivity extends AppCompatActivity {
                         Utils.matToBitmap(morphMat, morph_bitmap);
 
                         capturedImage.setImageBitmap(morph_bitmap);
+
+
                     }catch(Exception e){
                         e.printStackTrace();
                     }
