@@ -54,12 +54,12 @@ public class CapturedImageActivity extends AppCompatActivity {
 
     private static final String TAG = "CapturedImageActivity";
 
-    private int numClicks = 0;
+    private int numClicks = -1;
     private Scalar CONTOUR_COLOR;
 
     //image will contain unchanged image
-    private Mat rgba, image, blurred, edges, startM, endM, inputMat, outputMat, finalMat;
-    Bitmap bitmap, thresh_bitmap, edged_bitmap, warp_bitmap,contour_bitmap;
+    private Mat rgba, image, blurred, edges, startM, endM, inputMat, outputMat, finalMat, morphMat;
+    Bitmap bitmap, thresh_bitmap, edged_bitmap, warp_bitmap,contour_bitmap, morph_bitmap;
     MatOfPoint2f approx;
     int resultWidth, resultHeight;
 
@@ -192,7 +192,22 @@ public class CapturedImageActivity extends AppCompatActivity {
                 // Start Image Processing
                 Log.i(TAG, "Starting Image processing");
 
-                if (numClicks == 1) {
+                if(numClicks == 0){
+
+                    textView1.setText("Resized Image");
+                    Size maxImageSize = new Size(1700, 1700);
+                    float ratio = Math.min(
+                            (float) maxImageSize.width / bitmap.getWidth(),
+                            (float) maxImageSize.height / bitmap.getHeight());
+                    int width = Math.round((float) ratio * bitmap.getWidth());
+                    int height = Math.round((float) ratio * bitmap.getHeight());
+
+                    bitmap = Bitmap.createScaledBitmap(bitmap, width,
+                            height, true);
+
+                    capturedImage.setImageBitmap(bitmap);
+                }
+                else if (numClicks == 1) {
 
                     textView1.setText("Detected edges");
                     //rgba Image
@@ -550,7 +565,27 @@ public class CapturedImageActivity extends AppCompatActivity {
                     }
                 }
 
-                else if(numClicks == 5){
+                else if(numClicks == 5) {
+                    textView1.setText("Morphological Transformation");
+                    Log.i(TAG, "Morphological Operations");
+                    try{
+                        morphMat = finalMat;
+                        Mat kernel = new Mat(new Size(1, 1), CvType.CV_8UC1, new Scalar(255));
+                        Imgproc.morphologyEx(finalMat, morphMat, Imgproc.MORPH_OPEN, kernel);
+                        Imgproc.morphologyEx(morphMat, morphMat, Imgproc.MORPH_CLOSE, kernel);
+
+                        morph_bitmap = null;
+
+                        morph_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
+                        Utils.matToBitmap(morphMat, morph_bitmap);
+
+                        capturedImage.setImageBitmap(morph_bitmap);
+                    }catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+
+                else if(numClicks == 6){
                     Log.i(TAG, "Opening directory");
                     ContextWrapper cw = new ContextWrapper(getApplicationContext());
                     File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
@@ -560,7 +595,9 @@ public class CapturedImageActivity extends AppCompatActivity {
                     try{
                         fos = new FileOutputStream(mypath);
 
+                        morph_bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
 
+                        /*
                         Size maxImageSize = new Size(1200, 1200);
                         float ratio = Math.min(
                                 (float) maxImageSize.width / thresh_bitmap.getWidth(),
@@ -572,6 +609,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                                 height, true);
 
                         newBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        */
                         fos.close();
                     }catch(Exception e){
                         e.printStackTrace();
@@ -620,6 +658,12 @@ public class CapturedImageActivity extends AppCompatActivity {
                 } else if(numClicks == 4){
                     textView1.setText("Adaptive Threshold");
                     capturedImage.setImageBitmap(thresh_bitmap);
+
+
+
+                } else if(numClicks == 5){
+                    textView1.setText("Morphological Transform");
+                    capturedImage.setImageBitmap(morph_bitmap);
 
 
 
