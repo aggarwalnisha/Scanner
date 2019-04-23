@@ -1,15 +1,22 @@
 package com.nisha.scanner;
 
+import com.nisha.scanner.libraries.PolygonView;
+
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PointF;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,12 +40,17 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOError;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class CapturedImageActivity extends AppCompatActivity {
+
+    PolygonView polygonView;
 
     private static final String TAG = "CapturedImageActivity";
 
@@ -64,6 +76,82 @@ public class CapturedImageActivity extends AppCompatActivity {
         Core.merge(outChannel, out);
     }
 
+    private Point[] sortPoints( Point[] src ) {
+
+        ArrayList<Point> srcPoints = new ArrayList<>(Arrays.asList(src));
+
+        Point[] result = { null , null , null , null };
+
+        Comparator<Point> sumComparator = new Comparator<Point>() {
+            @Override
+            public int compare(Point lhs, Point rhs) {
+                return Double.valueOf(lhs.y + lhs.x).compareTo(rhs.y + rhs.x);
+            }
+        };
+
+        Comparator<Point> diffComparator = new Comparator<Point>() {
+
+            @Override
+            public int compare(Point lhs, Point rhs) {
+                return Double.valueOf(lhs.y - lhs.x).compareTo(rhs.y - rhs.x);
+            }
+        };
+
+        // top-left corner = minimal sum
+        result[0] = Collections.min(srcPoints, sumComparator);
+
+        // bottom-right corner = maximal sum
+        result[2] = Collections.max(srcPoints, sumComparator);
+
+        // top-right corner = minimal diference
+        result[1] = Collections.min(srcPoints, diffComparator);
+
+        // bottom-left corner = maximal diference
+        result[3] = Collections.max(srcPoints, diffComparator);
+
+        return result;
+    }
+
+    private boolean insideArea(Point[] rp, Size size) {
+
+        int width = Double.valueOf(size.width).intValue();
+        int height = Double.valueOf(size.height).intValue();
+        int baseMeasure = height/4;
+
+        int bottomPos = height-baseMeasure;
+        int topPos = baseMeasure;
+        int leftPos = width/2-baseMeasure;
+        int rightPos = width/2+baseMeasure;
+
+        return (
+                rp[0].x <= leftPos && rp[0].y <= topPos
+                        && rp[1].x >= rightPos && rp[1].y <= topPos
+                        && rp[2].x >= rightPos && rp[2].y >= bottomPos
+                        && rp[3].x <= leftPos && rp[3].y >= bottomPos
+
+        );
+    }
+
+    private Map<Integer, PointF> getOutlinePoints(Bitmap tempBitmap) {
+        Log.v("aashari-tag", "getOutlinePoints");
+        Map<Integer, PointF> outlinePoints = new HashMap<>();
+        outlinePoints.put(0, new PointF(0, 0));
+        outlinePoints.put(1, new PointF(tempBitmap.getWidth(), 0));
+        outlinePoints.put(2, new PointF(0, tempBitmap.getHeight()));
+        outlinePoints.put(3, new PointF(tempBitmap.getWidth(), tempBitmap.getHeight()));
+        return outlinePoints;
+    }
+
+    private Map<Integer, PointF> orderedValidEdgePoints(Bitmap tempBitmap, List<PointF> pointFs) {
+        Log.v("aashari-tag", "orderedValidEdgePoints");
+        Map<Integer, PointF> orderedPoints = polygonView.getOrderedPoints(pointFs);
+        if (!polygonView.isValidShape(orderedPoints)) {
+            orderedPoints = getOutlinePoints(tempBitmap);
+        }
+        return orderedPoints;
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,6 +159,7 @@ public class CapturedImageActivity extends AppCompatActivity {
 
         CONTOUR_COLOR = new Scalar(255,0,0,255);
 
+      //  polygonView = (com.nisha.scanner.libraries.PolygonView)findViewById(R.id.polygonView);
 
         final ImageView capturedImage = (ImageView)findViewById(R.id.capturedImage);
         ImageView nextBtn = (ImageView)findViewById(R.id.nextBtn);
@@ -88,8 +177,8 @@ public class CapturedImageActivity extends AppCompatActivity {
             bitmap = BitmapFactory.decodeStream(new FileInputStream(myImagePath));
             capturedImage.setImageBitmap(bitmap);
 
-            capturedImage.setAdjustViewBounds(true);
-            capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+//            capturedImage.setAdjustViewBounds(true);
+//            capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
             Log.i(TAG, "Image set");
         }catch(java.io.FileNotFoundException e){
@@ -150,8 +239,8 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                         capturedImage.setImageBitmap(edged_bitmap);
 
-                        capturedImage.setAdjustViewBounds(true);
-                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+//                        capturedImage.setAdjustViewBounds(true);
+//                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -193,9 +282,6 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                         List<MatOfPoint> list = new ArrayList<MatOfPoint>();
                         Iterator<MatOfPoint> iterator = contours.iterator();
-//                        if(iterator.hasNext()) {
-//                            iterator.next();
-//                        }
                         while (iterator.hasNext()){
 
                             MatOfPoint contour = iterator.next();
@@ -211,7 +297,8 @@ public class CapturedImageActivity extends AppCompatActivity {
 
 
                         Log.i(TAG, list.toString());
-                        Imgproc.drawContours(rgba, list, -1, CONTOUR_COLOR, 4);
+
+                        Imgproc.drawContours(rgba, list, -1, CONTOUR_COLOR, 20);
 
                         contour_bitmap = null;
 
@@ -221,8 +308,8 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                             capturedImage.setImageBitmap(contour_bitmap);
 
-                            capturedImage.setAdjustViewBounds(true);
-                            capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+//                            capturedImage.setAdjustViewBounds(true);
+//                            capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -255,6 +342,8 @@ public class CapturedImageActivity extends AppCompatActivity {
                         list.add(p2);
                         list.add(p3);
                         list.add(p4);
+
+
 
                         //Sort by x-xoordinates
                         Collections.sort(list, new Comparator<Point>() {
@@ -308,6 +397,63 @@ public class CapturedImageActivity extends AppCompatActivity {
                         });
                         top_right = rightList.get(0);
                         bottom_right = rightList.get(1);
+
+                        //Show the 4 points and allow them to be dragged (topleft, topright, bottomright, bottomleft)
+
+/*
+                        FrameLayout frameLayout = (FrameLayout)findViewById(R.id.frameLayout);
+
+
+                        ImageView imageView = new ImageView(getApplicationContext());
+                        imageView.setImageResource(R.drawable.circle);
+
+                        imageView.setX(50);
+                        imageView.setY(50);
+//                        imageView.setMinimumHeight(1);
+//                        imageView.setMaxHeight(2);
+//                        imageView.setMinimumWidth(1);
+//                        imageView.setMaxWidth(2);
+
+//                        imageView.setX((float)top_left.x);
+//                        imageView.setY((float)top_left.y);
+                        Log.i(TAG, "ImageView Set");
+
+                        LinearLayout.LayoutParams parms = new LinearLayout.LayoutParams(3,3);
+                        imageView.setLayoutParams(parms);
+
+
+                        frameLayout.addView(imageView);
+
+
+
+
+
+
+
+//                        List<PointF> res = new ArrayList<>();
+//                        res.add(new PointF((float)top_left.x, (float)top_left.y));
+//                       res.add(new PointF((float)top_right.x, (float)top_right.y));
+//                        res.add(new PointF((float)bottom_right.x, (float)bottom_right.y));
+//                        res.add(new PointF((float)bottom_left.x, (float)bottom_left.y));
+//
+//                        Map<Integer, PointF> pointFs = orderedValidEdgePoints(bitmap, res);
+//
+//
+//
+//                        polygonView.setPoints(pointFs);
+//                        polygonView.setVisibility(View.VISIBLE);
+//
+//                       // int padding = (int) getResources().getDimension(R.dimen.scanPadding);
+//                        int padding = 0;
+//
+//                        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(bitmap.getWidth() + 2 * padding, bitmap.getHeight() + 2 * padding);
+//                        layoutParams.gravity = Gravity.CENTER;
+//
+//                        polygonView.setLayoutParams(layoutParams);
+
+
+
+*/
 
                         List<Point> source = new ArrayList<>();
                         source.add(top_left);
@@ -366,6 +512,7 @@ public class CapturedImageActivity extends AppCompatActivity {
                         capturedImage.setAdjustViewBounds(true);
                         capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -376,7 +523,14 @@ public class CapturedImageActivity extends AppCompatActivity {
                     try{
                         finalMat = outputMat;
                         Imgproc.cvtColor(outputMat, finalMat, Imgproc.COLOR_BGR2GRAY);
-                        Imgproc.adaptiveThreshold(finalMat, finalMat, 230, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 19, 5);
+//
+                     //   Imgproc.medianBlur(finalMat, finalMat, 3);
+                      //  Imgproc.threshold(finalMat, finalMat, 0, 255, Imgproc.THRESH_OTSU);
+
+                        Imgproc.GaussianBlur(finalMat, finalMat, new Size(3, 3), 0);
+                        Imgproc.threshold(finalMat, finalMat, 0, 255, Imgproc.THRESH_OTSU);
+
+                    //    Imgproc.adaptiveThreshold(finalMat, finalMat, 230, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 19, 5);
                         thresh_bitmap = null;
 
                         thresh_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);

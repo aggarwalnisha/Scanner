@@ -15,6 +15,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
+
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import java.io.File;
@@ -30,6 +33,7 @@ public class OCRActivity extends AppCompatActivity {
 
     private static final String TAG = "Sample::OCRActivity";
     Bitmap image;
+    TextToSpeech t1;
     private TessBaseAPI mTess;
     String datapath = "";
 
@@ -89,7 +93,8 @@ public class OCRActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ocr);
 
-        TextView textView = (TextView) findViewById(R.id.tv_OCR_Result);
+
+        final TextView textView = (TextView) findViewById(R.id.tv_OCR_Result);
 
         Log.i(TAG, "Loading Bitmap");
 
@@ -97,6 +102,18 @@ public class OCRActivity extends AppCompatActivity {
 
         File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
         File myImagePath = new File(directory, "myImage.jpg");
+
+
+        t1=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status != TextToSpeech.ERROR) {
+                    t1.setLanguage(Locale.UK);
+                }
+            }
+        });
+
+
 
 
         try {
@@ -116,6 +133,8 @@ public class OCRActivity extends AppCompatActivity {
            e.printStackTrace();
         }
 
+
+
         Button ocrBtn = (Button)findViewById(R.id.ocrBtn);
         ocrBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -131,6 +150,7 @@ public class OCRActivity extends AppCompatActivity {
                     OCRresult = mTess.getUTF8Text();
                     TextView tv_OCR_Result = (TextView) findViewById(R.id.tv_OCR_Result);
                     tv_OCR_Result.setText(OCRresult);
+                    Log.i(TAG, "OCR Done");
                     Toast.makeText(getApplicationContext(), "OCR done!", Toast.LENGTH_SHORT).show();
                 }catch(Exception e){
                     e.printStackTrace();
@@ -138,7 +158,34 @@ public class OCRActivity extends AppCompatActivity {
             }
         });
 
+        try {
+
+            Button speechBtn = (Button) findViewById(R.id.speechBtn);
+            speechBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Log.i(TAG, "Speech clicked");
+                    String toSpeak = textView.getText().toString();
+                    Toast.makeText(getApplicationContext(), toSpeak, Toast.LENGTH_SHORT).show();
+                    t1.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null);
+                }
+            });
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
 
 
+
+
+    }
+
+
+    public void onPause(){
+        if(t1 !=null){
+            t1.stop();
+            t1.shutdown();
+        }
+        super.onPause();
     }
 }
