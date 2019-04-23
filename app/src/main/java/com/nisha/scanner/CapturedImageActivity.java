@@ -500,17 +500,19 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                         Imgproc.warpPerspective(inputMat, outputMat, perspectiveTransform, new Size(resultWidth, resultHeight));
 
-
+                        Core.copyMakeBorder(outputMat, outputMat, 5, 5, 5, 5, Core.BORDER_CONSTANT);
                         warp_bitmap = null;
 
+                        resultHeight+=10;
+                        resultWidth +=10;
 
                         warp_bitmap = Bitmap.createBitmap(resultWidth, resultHeight, Bitmap.Config.ARGB_8888);
                         Utils.matToBitmap(outputMat, warp_bitmap);
 
                         capturedImage.setImageBitmap(warp_bitmap);
 
-                        capturedImage.setAdjustViewBounds(true);
-                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+//                        capturedImage.setAdjustViewBounds(true);
+//                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
 
                     } catch (Exception e) {
@@ -528,7 +530,9 @@ public class CapturedImageActivity extends AppCompatActivity {
                       //  Imgproc.threshold(finalMat, finalMat, 0, 255, Imgproc.THRESH_OTSU);
 
                         Imgproc.GaussianBlur(finalMat, finalMat, new Size(3, 3), 0);
-                        Imgproc.threshold(finalMat, finalMat, 0, 255, Imgproc.THRESH_OTSU);
+                  //      Imgproc.threshold(finalMat, finalMat, 0, 255, Imgproc.THRESH_OTSU);
+
+                        Imgproc.adaptiveThreshold(finalMat, finalMat, 255, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 7, 3);
 
                     //    Imgproc.adaptiveThreshold(finalMat, finalMat, 230, Imgproc.ADAPTIVE_THRESH_MEAN_C, Imgproc.THRESH_BINARY, 19, 5);
                         thresh_bitmap = null;
@@ -538,8 +542,8 @@ public class CapturedImageActivity extends AppCompatActivity {
 
                         capturedImage.setImageBitmap(thresh_bitmap);
 
-                        capturedImage.setAdjustViewBounds(true);
-                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+//                        capturedImage.setAdjustViewBounds(true);
+//                        capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -555,7 +559,19 @@ public class CapturedImageActivity extends AppCompatActivity {
                     FileOutputStream fos = null;
                     try{
                         fos = new FileOutputStream(mypath);
-                        thresh_bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+
+
+                        Size maxImageSize = new Size(1200, 1200);
+                        float ratio = Math.min(
+                                (float) maxImageSize.width / thresh_bitmap.getWidth(),
+                                (float) maxImageSize.height / thresh_bitmap.getHeight());
+                        int width = Math.round((float) ratio * thresh_bitmap.getWidth());
+                        int height = Math.round((float) ratio * thresh_bitmap.getHeight());
+
+                        Bitmap newBitmap = Bitmap.createScaledBitmap(thresh_bitmap, width,
+                                height, true);
+
+                        newBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
                         fos.close();
                     }catch(Exception e){
                         e.printStackTrace();
@@ -581,36 +597,31 @@ public class CapturedImageActivity extends AppCompatActivity {
                     textView1.setText("Captured Image");
                     capturedImage.setImageBitmap(bitmap);
 
-                    capturedImage.setAdjustViewBounds(true);
-                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
 
                 }else if(numClicks == 1){
                     textView1.setText("Detected edges");
                     capturedImage.setImageBitmap(edged_bitmap);
 
-                    capturedImage.setAdjustViewBounds(true);
-                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
 
                 } else if(numClicks == 2){
                     textView1.setText("Detected contour");
                     capturedImage.setImageBitmap(contour_bitmap);
 
-                    capturedImage.setAdjustViewBounds(true);
-                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
 
                 } else if(numClicks == 3){
                     textView1.setText("Perspective Transformation");
                     capturedImage.setImageBitmap(warp_bitmap);
 
-                    capturedImage.setAdjustViewBounds(true);
-                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
 
                 } else if(numClicks == 4){
                     textView1.setText("Adaptive Threshold");
                     capturedImage.setImageBitmap(thresh_bitmap);
 
-                    capturedImage.setAdjustViewBounds(true);
-                    capturedImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
 
                 }
 

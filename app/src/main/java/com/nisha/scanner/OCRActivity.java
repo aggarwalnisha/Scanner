@@ -20,6 +20,10 @@ import java.util.Locale;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -104,14 +108,7 @@ public class OCRActivity extends AppCompatActivity {
         File myImagePath = new File(directory, "myImage.jpg");
 
 
-        t1=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if(status != TextToSpeech.ERROR) {
-                    t1.setLanguage(Locale.UK);
-                }
-            }
-        });
+
 
 
 
@@ -119,6 +116,8 @@ public class OCRActivity extends AppCompatActivity {
         try {
 
             image = BitmapFactory.decodeStream(new FileInputStream(myImagePath));
+
+
 
             Log.i(TAG, "Into tesseract");
             String language = "eng";
@@ -132,6 +131,15 @@ public class OCRActivity extends AppCompatActivity {
         }catch(Exception e){
            e.printStackTrace();
         }
+
+        t1=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status != TextToSpeech.ERROR) {
+                    t1.setLanguage(Locale.UK);
+                }
+            }
+        });
 
 
 
@@ -158,12 +166,18 @@ public class OCRActivity extends AppCompatActivity {
             }
         });
 
+
+
         try {
+
+
 
             Button speechBtn = (Button) findViewById(R.id.speechBtn);
             speechBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+
+
                     Log.i(TAG, "Speech clicked");
                     String toSpeak = textView.getText().toString();
                     Toast.makeText(getApplicationContext(), toSpeak, Toast.LENGTH_SHORT).show();
@@ -181,11 +195,15 @@ public class OCRActivity extends AppCompatActivity {
     }
 
 
+    /*
     public void onPause(){
+        Log.i(TAG, "Speech paused");
         if(t1 !=null){
+            Log.i("Speech shutdown");
             t1.stop();
             t1.shutdown();
         }
         super.onPause();
     }
+    */
 }
